@@ -1,11 +1,12 @@
 package Clases;
 
 import java.sql.Date;
+import java.time.LocalDate;
 
 public class Factura {
 
     private int id;
-    private Date fecha;
+    private LocalDate fecha;
     private String nombreCliente;
 
     public enum FormaDePago {
@@ -16,7 +17,7 @@ public class Factura {
     private boolean pagado;
     private String direccion;
 
-    public Factura(int id, Date fecha, String nombreCliente, FormaDePago formaPago, boolean pagado, String direccion) {
+    public Factura(int id, LocalDate fecha, String nombreCliente, FormaDePago formaPago, boolean pagado, String direccion) {
         this.id = id;
         this.fecha = fecha;
         this.nombreCliente = nombreCliente;
@@ -33,11 +34,11 @@ public class Factura {
         this.id = id;
     }
 
-    public Date getFecha() {
+    public LocalDate getFecha() {
         return fecha;
     }
 
-    public void setFecha(Date fecha) {
+    public void setFecha(LocalDate fecha) {
         this.fecha = fecha;
     }
 

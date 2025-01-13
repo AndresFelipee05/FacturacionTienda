@@ -7,10 +7,8 @@ public class FacturacionTienda {
         TiendaApp app = new TiendaApp();
         
         
-        app.conectar();
-        
-        app.insertarFactura();
-        
+        app.conectar(); 
+        app.menu();
         app.desconectar();
     }
 }

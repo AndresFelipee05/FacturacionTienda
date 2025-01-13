@@ -3,12 +3,12 @@ CREATE DATABASE IF NOT EXISTS facturacionTienda;
 USE facturacionTienda;
 
 CREATE TABLE IF NOT EXISTS Factura(
-	id INT PRIMARY KEY,
+	id INT AUTO_INCREMENT KEY,
     fecha DATE,
     nombreCliente VARCHAR(50) NOT NULL,
     formaPago ENUM ('Efectivo','Tarjeta','Transferencia'),
     pagado boolean,
-    direccion varchar (40)
+    direccion varchar (100)
 );
 
 CREATE TABLE IF NOT EXISTS DetalleFactura(
