@@ -47,7 +47,7 @@ public class TiendaApp {
             System.out.println("1. Insertar factura.");
             System.out.println("2. Pagar factura.");
             System.out.println("3. Eliminar factura.");
-            System.out.println("4. Mostrar factura.");
+            System.out.println("4. Mostrar factura y sus detalles por id.");
             System.out.println("5. Listar facturas.");
             System.out.println("6. Listar detalles de facturas.");
 
@@ -67,7 +67,7 @@ public class TiendaApp {
                 }
 
                 case 4 -> {
-
+                    mostrarFacturaPorId();
                 }
 
                 case 5 -> {
@@ -288,6 +288,7 @@ public class TiendaApp {
     }
 
     public int consultaModificarFormaPago(int idBuscar, Enum formaPago) {
+        // Opción 2. Pagar factura.
         try {
             String consulta = "SELECT f.formaPago, f.id, f.pagado "
                     + "FROM Factura f "
@@ -468,6 +469,118 @@ public class TiendaApp {
             }
         }
         return 0;
+    }
+
+    public void mostrarFacturaPorId() {
+        try {
+            System.out.print("Introduce el Id de la factura que quieres ver: ");
+            int idBuscar = introduceEntero();
+
+            if (idBuscar < 0) {
+                System.out.println("Id de la factura inválido. Operación cancelada.");
+                return;
+            }
+
+            consultaMostrarFacturaPorId(idBuscar);
+            System.out.println("\n --- Fin mostrar factura --- ");
+
+            System.out.println();
+
+            consultaMostrarDetalleFacturaPorId(idBuscar);
+            System.out.println("\n --- Fin mostrar detalles de factura --- ");
+
+        } catch (Exception ex) {
+            System.out.println("Error: " + ex.getMessage());
+        }
+    }
+
+    public void consultaMostrarFacturaPorId(int idBuscar) {
+        try {
+            String sql = "SELECT * "
+                    + "FROM Factura "
+                    + "WHERE id = " + idBuscar;
+
+            PreparedStatement stmt = con.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                int id = rs.getInt("id");
+                LocalDate fecha = rs.getDate("fecha").toLocalDate();
+                String nombreCliente = rs.getString("nombreCliente");
+
+                // Pasar la forma de pago a Enum.
+                String formaPagoString = rs.getString("formaPago");
+                Factura.FormaDePago formaPago = null;
+                if (formaPagoString != null) {
+                    formaPago = Factura.FormaDePago.valueOf(formaPagoString.toUpperCase());
+                }
+
+                boolean pagado = rs.getBoolean("pagado");
+                String direccion = rs.getString("direccion");
+
+                System.out.println("\n --- Información de la factura con ID " + idBuscar + " --- ");
+                System.out.println("    Id: " + id);
+                System.out.println("    Fecha: " + fecha);
+                System.out.println("    Nombre del cliente: " + nombreCliente);
+                System.out.println("    Forma de pago: " + formaPago);
+                System.out.println("    Pagado: " + pagado);
+                System.out.print("    Dirección: " + direccion);
+
+                return;
+
+            } else {
+                System.out.println("No se ha encontrado una factura con el Id : " + idBuscar);
+                return;
+            }
+        } catch (SQLException ex) {
+            System.out.println("Error SQL: " + ex.getMessage());
+            return;
+        }
+    }
+
+    public void consultaMostrarDetalleFacturaPorId(int idBuscar) {
+        try {
+            String sql = "SELECT * "
+                    + "FROM DetalleFactura "
+                    + "WHERE idFactura = " + idBuscar;
+
+            PreparedStatement stmt = con.prepareStatement(sql);
+            ResultSet st = stmt.executeQuery();
+
+            double precioTotal = 0; // Para el precio total de la factura.
+            boolean encontrado = false;
+
+            while (st.next()) {
+                int idFactura = st.getInt("idFactura");
+                int numeroLinea = st.getInt("numeroLinea");
+                String descripcion = st.getString("descripcion");
+                double cantidad = st.getDouble("cantidad");
+                double precio = st.getDouble("precio");
+
+                double totalLinea = cantidad * precio; // Para el precio que hay en cada linea.
+                precioTotal += totalLinea; // Sumamos el precio que hay en cada linea.
+
+                System.out.println("\n --- Detalles de la factura con ID " + idBuscar + " --- ");
+                System.out.println("    Id de la factura: " + idFactura);
+                System.out.println("    Número de lineas: " + numeroLinea);
+                System.out.println("    Descripción: " + descripcion);
+                System.out.println("    Cantidad: " + cantidad);
+                System.out.println("    Precio: " + precio);
+                System.out.println("    Precio total de la linea: " + totalLinea);
+                encontrado = true;
+            }
+            if (!encontrado) {
+                System.out.println("No se ha encontrado una factura con id " + idBuscar + " para mostrar sus detalles.");
+                return;
+            } else {
+                System.out.println("############################################");
+                System.out.println("    Precio total de la factura: " + precioTotal);
+                System.out.println("############################################");
+            }
+        } catch (SQLException ex) {
+            System.out.println("Error SQL: " + ex.getMessage());
+            return;
+        }
     }
 
     public int introduceEntero() {
