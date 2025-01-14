@@ -6,7 +6,6 @@ public class FacturacionTienda {
 
         TiendaApp app = new TiendaApp();
         
-        
         app.conectar(); 
         app.menu();
         app.desconectar();

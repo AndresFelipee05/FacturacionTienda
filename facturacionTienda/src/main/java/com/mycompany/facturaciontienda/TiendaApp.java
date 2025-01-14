@@ -59,7 +59,7 @@ public class TiendaApp {
                 }
 
                 case 2 -> {
-
+                    pagarFactura();
                 }
 
                 case 3 -> {
@@ -90,6 +90,7 @@ public class TiendaApp {
     }
 
     public void insertarFactura() {
+        // Opción 1. Insertar factura. 
         try {
             System.out.print("Introduce el nombre del cliente: ");
             String nombreCliente = sc.nextLine();
@@ -191,6 +192,7 @@ public class TiendaApp {
     }
 
     public int consultaInsertarFactura(Factura factura) throws SQLException {
+        // Opción 1. Insertar factura. 
         String sql = "INSERT INTO Factura (fecha, nombreCliente, formaPago, pagado, direccion) VALUES (?, ?, ?, ? , ?)";
         try {
             PreparedStatement stmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -218,6 +220,7 @@ public class TiendaApp {
     }
 
     public int consultaInsertarDetalleFactura(int idFactura, int numeroLinea, String descripcion, double cantidad, double precio) throws SQLException {
+        // Opción 1. Insertar factura. 
         String consulta = "INSERT INTO DetalleFactura (idFactura, numeroLinea, descripcion, cantidad,precio) VALUES (?, ?, ?, ?, ?) ";
         try {
             PreparedStatement stmt = con.prepareStatement(consulta);
@@ -234,6 +237,95 @@ public class TiendaApp {
             System.out.println("Error SQL: " + ex.getMessage());
             return -1;
         }
+    }
+
+    public void pagarFactura() {
+        // Opción 2. Pagar factura.
+        try {
+            System.out.print("Introduce el Id de la factura para modificar el metodo de pago: ");
+            int idFacturaBuscar = introduceEntero();
+
+            if (idFacturaBuscar < 0) {
+                System.out.println("Id inválido. Operación cancelada.");
+                return;
+            }
+
+            System.out.println("Selecciona un método de pago: (Introduce un número)");
+            System.out.println("Efectivo(1)");
+            System.out.println("Tarjeta(2)");
+            System.out.println("Transferencia(3)");
+            int formaPagoInt = introduceEntero();
+            String formaPagoString = null;
+            Factura.FormaDePago formaPago = null;
+
+            if (formaPagoInt < 0) {
+                System.out.println("El método de pago es inválido. Operación cancelada.");
+                return;
+            }
+
+            if (formaPagoInt == 1) {
+                formaPagoString = "Efectivo";
+                formaPago = Factura.FormaDePago.valueOf(formaPagoString.toUpperCase());
+            } else if (formaPagoInt == 2) {
+                formaPagoString = "Tarjeta";
+                formaPago = Factura.FormaDePago.valueOf(formaPagoString.toUpperCase());
+            } else if (formaPagoInt == 3) {
+                formaPagoString = "Transferencia";
+                formaPago = Factura.FormaDePago.valueOf(formaPagoString.toUpperCase());
+            } else {
+                System.out.println("Método de pago no válido. Operación cancelada.");
+                return;
+            }
+
+            int resultado = consultaModificarFormaPago(idFacturaBuscar, formaPago);
+
+            if (resultado == 0) {
+                System.out.println("La forma de pago ha sido modificada.");
+            }
+        } catch (Exception ex) {
+            System.out.println("Ha ocurrido un error: " + ex.getMessage());
+        }
+    }
+
+    public int consultaModificarFormaPago(int idBuscar, Enum formaPago) {
+        try {
+            String consulta = "SELECT f.formaPago, f.id, f.pagado "
+                    + "FROM Factura f "
+                    + "JOIN DetalleFactura df "
+                    + "ON f.id = df.idFactura "
+                    + "WHERE f.id = " + idBuscar;
+
+            System.out.println("Consulta SQL para buscar la factura: " + consulta);
+
+            Statement s = con.createStatement();
+            ResultSet rs = s.executeQuery(consulta);
+
+            if (rs.next()) {
+                int idFactura = rs.getInt("id");
+                boolean pagado = rs.getBoolean("pagado");
+
+                String modificar = "UPDATE Factura SET formaPago = '" + formaPago.toString() + "'"
+                        + (pagado == false ? ", pagado = '1'" : "")
+                        + " WHERE id = " + idBuscar;
+
+                System.out.println("Consulta para modificar la forma de pago: " + modificar);
+
+                int filasAfectadas = s.executeUpdate(modificar);
+
+                if (filasAfectadas < 0) {
+                    System.out.println("No se ha podido modificar la forma de pago.");
+                    return -1;
+                }
+            } else {
+                System.out.println("No se pudo encontrar una factura con el Id: " + idBuscar);
+                return -1;
+            }
+
+        } catch (SQLException ex) {
+            System.out.println("Ha ocurrido un error SQL: " + ex.getMessage());
+            return -2;
+        }
+        return 0;
     }
 
     public void listarFacturas() {
@@ -269,7 +361,7 @@ public class TiendaApp {
                 Factura.FormaDePago formaPago = null;
 
                 // Comprobar que no sea null ya que se puede insertar un null.
-                if (formaPago != null) {
+                if (formaPagoString != null) {
                     formaPago = Factura.FormaDePago.valueOf(formaPagoString.toUpperCase());
                 }
 
@@ -324,7 +416,7 @@ public class TiendaApp {
     }
 
     public void eliminarFactura() {
-        // Opción 3.
+        // Opción 3. Eliminar factura.
         try {
             System.out.print("Introduce el ID para eliminar la factura: ");
             int idBuscar = introduceEntero();
@@ -345,7 +437,7 @@ public class TiendaApp {
     }
 
     public int consultaEliminar(int idBuscar) {
-        // Opción 3.
+        // Opción 3. Eliminar factura.
         Statement s = null;
         try {
             String consulta = "DELETE FROM Factura "
