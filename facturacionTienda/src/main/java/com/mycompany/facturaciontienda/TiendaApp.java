@@ -42,7 +42,7 @@ public class TiendaApp {
     public void menu() {
         int opcion;
         do {
-            System.out.println("\n--- Menú Películas ---");
+            System.out.println("\n--- Menú Facturas ---");
             System.out.println("0. Salir del programa.");
             System.out.println("1. Insertar factura.");
             System.out.println("2. Pagar factura.");
@@ -112,15 +112,17 @@ public class TiendaApp {
             boolean pagado = false;
 
             Factura nuevaFactura = new Factura(0, fecha, nombreCliente, formaPago, pagado, direccion);
-            int insertarFactura = consultaInsertarFactura(nuevaFactura);
+            int idNuevaFactura = consultaInsertarFactura(nuevaFactura);
+            // Insertamos la factura, ahora pediremos los datos de la factura para así insertar los detalles de la factura.
 
-            if (insertarFactura < 0) {
+            if (idNuevaFactura < 0) {
                 System.out.println("No se pudo insertar la factura. Operación cancelada");
                 return;
             } else {
-                System.out.println("La factura se ha insertado correctamente.");
+                System.out.println("La factura se ha insertado correctamente con el Id: " + idNuevaFactura);
             }
 
+            int numeroLinea = 1; // Por defecto lo ponemos en 1.
             boolean continuar;
             do {
                 System.out.print("Introduce la descripción de la factura: ");
@@ -165,32 +167,71 @@ public class TiendaApp {
                     }
                 }
 
+                int resultadoInsertarDetalleFactura = consultaInsertarDetalleFactura(idNuevaFactura, numeroLinea, descripcion, cantidad, precio);
+                if (resultadoInsertarDetalleFactura > 0) {
+                    System.out.println("Se insertaron correctamente los detalles de la factura.");
+                    numeroLinea++; // Aumentamos el número de linea.
+                } else {
+                    System.out.println("Error al insertar los detalles de la factura.");
+                    return;
+                }
+
                 System.out.println("¿Quieres continuar introduciendo detalles de la factura? (True|False)");
                 continuar = sc.nextBoolean();
                 sc.nextLine();
             } while (continuar == true);
+
+            if (continuar == false) {
+                System.out.println("Saliendo del proceso...");
+                return;
+            }
         } catch (Exception ex) {
             System.out.println("Ha ocurrido un error al insertar la factura: " + ex.getMessage());
         }
     }
 
     public int consultaInsertarFactura(Factura factura) throws SQLException {
-        String sql = "INSERT INTO Factura (id, fecha, nombreCliente, formaPago, pagado, direccion) VALUES (?, ?, ?, ? , ?, ?)";
+        String sql = "INSERT INTO Factura (fecha, nombreCliente, formaPago, pagado, direccion) VALUES (?, ?, ?, ? , ?)";
         try {
-            PreparedStatement stmt = con.prepareStatement(sql);
+            PreparedStatement stmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
-            stmt.setInt(1, factura.getId());
-            stmt.setDate(2, Date.valueOf(factura.getFecha())); // Pasar de LocalDate a Date porque sino no deja.
-            stmt.setString(3, factura.getNombreCliente());
-            stmt.setString(4, null);
-            stmt.setBoolean(5, false);
-            stmt.setString(6, factura.getDireccion());
+            stmt.setDate(1, Date.valueOf(factura.getFecha()));
+            stmt.setString(2, factura.getNombreCliente());
+            stmt.setString(3, null); // Forma de pago nula
+            stmt.setBoolean(4, false); // No pagado
+            stmt.setString(5, factura.getDireccion());
 
             int filasAfectadas = stmt.executeUpdate();
-            return filasAfectadas;
-
+            // Para devolver el Id de la factuy insertada
+            if (filasAfectadas > 0) {
+                ResultSet rs = stmt.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1);
+                    // Ponemos 1 porque es el valor de la posicion del ID.
+                }
+            }
+            return -1;
         } catch (SQLException ex) {
             System.out.println("Ha ocurrido un error al insertar la factura: " + ex.getMessage());
+            return -2;
+        }
+    }
+
+    public int consultaInsertarDetalleFactura(int idFactura, int numeroLinea, String descripcion, double cantidad, double precio) throws SQLException {
+        String consulta = "INSERT INTO DetalleFactura (idFactura, numeroLinea, descripcion, cantidad,precio) VALUES (?, ?, ?, ?, ?) ";
+        try {
+            PreparedStatement stmt = con.prepareStatement(consulta);
+
+            stmt.setInt(1, idFactura);
+            stmt.setInt(2, numeroLinea);
+            stmt.setString(3, descripcion);
+            stmt.setDouble(4, cantidad);
+            stmt.setDouble(5, precio);
+
+            return stmt.executeUpdate();
+
+        } catch (SQLException ex) {
+            System.out.println("Error SQL: " + ex.getMessage());
             return -1;
         }
     }
@@ -222,11 +263,15 @@ public class TiendaApp {
                 int id = rs.getInt("id");
 
                 LocalDate fecha = rs.getDate("fecha").toLocalDate();
-
                 String nombreCliente = rs.getString("nombreCliente");
-                String formaPagoStrig = rs.getString("formaPago");
 
-                Factura.FormaDePago formaPago = Factura.FormaDePago.valueOf(formaPagoStrig.toUpperCase());
+                String formaPagoString = rs.getString("formaPago");
+                Factura.FormaDePago formaPago = null;
+
+                // Comprobar que no sea null ya que se puede insertar un null.
+                if (formaPago != null) {
+                    formaPago = Factura.FormaDePago.valueOf(formaPagoString.toUpperCase());
+                }
 
                 boolean pagado = rs.getBoolean("pagado");
                 String direccion = rs.getString("direccion");
